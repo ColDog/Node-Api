@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+    </script>
+    <link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.4/material.indigo-pink.min.css">
+    <script src="https://storage.googleapis.com/code.getmdl.io/1.0.4/material.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+</head>
+<body>
+
+<span id="flash" style="display: none; position: fixed; top: 20px;" class="mdl-badge" data-badge="1"></span>
+
+<div id="currentUser" if="true" condition="current_user()" model="current_user">
+    <true>
+        <h1>Welcome <span model="current_user" ev="User.username"></span></h1>
+        <button onclick="User.logout();engine.emit('data-update', 'current_user')">Logout</button>
+        <table loop="true" id="users" model="user">
+            <tr><td item="username"></td></tr>
+        </table>
+    </true>
+    <false>
+        <h1>Welcome Guest</h1>
+        <form id="login" action="#" method="post">
+            <input type="text"     placeholder="username" name="username">
+            <input type="password" placeholder="password" name="password">
+            <input type="submit" value="Log In">
+        </form>
+    </false>
+</div>
+
+
+
+<script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+<script src="/assets/engine.js"></script>
+<script src="/assets/main.js"></script>
+<!--<script src="/assets/index.js"></script>-->
+<script>
+    function initialize() {
+        Engine.E.currentUserName = User.name;
+        $('#login').submit(function(e){
+            e.preventDefault();
+            Engine.authenticate( $('#login').serialize() );
+            return false
+        });
+
+        engine.on('user-cache-invalidated', function(){
+            Engine.fill('/users', 'user', '#users');
+        });
+        engine.on('authenticationComplete', function(data){
+            console.log( 'authenticationComplete', data );
+            engine.emit('data-update', 'current_user')
+        });
+        engine.on('current_user-data-update', function(){
+            console.log('current_user-data-update', 'called');
+            Engine.fill('/users', 'user', '#users');
+        });
+    }
+    engine.on('data-update', function(){
+        initialize()
+    });
+    $( document).ready(function(){
+        initialize()
+    })
+</script>
+</body>
+</html>
