@@ -14,14 +14,6 @@ UserController = {
         })
     },
 
-    new: function(req, res) {
-        res.send('Hello');
-    },
-
-    edit: function(req, res) {
-        res.send('Hello');
-    },
-
     create: function(req, res) {
         var new_user = new User( req.body );
         new_user.save(function(err) {
@@ -39,6 +31,13 @@ UserController = {
     },
 
     destroy: function(req, res) {
+        User.remove({_id: req.body.id}, function(err){
+            if (err) {
+                res.json({ success: false, message: 'User failed to delete.', data: err });
+            } else {
+                res.json({ success: true, message: 'User deleted.'});
+            }
+        })
 
     }
 };

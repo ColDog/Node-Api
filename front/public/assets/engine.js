@@ -1,7 +1,31 @@
 /*! evemit v1.0.0 | MIT (c) 2014 Nicolas Tallefourtane - https://github.com/Nicolab/evemit */
 !function(){"use strict";function t(){this.events={}}t.prototype.on=function(t,e,n){return this.events[t]||(this.events[t]=[]),n&&(e._E_ctx=n),this.events[t].push(e),this},t.prototype.once=function(t,e,n){return e._E_once=!0,this.on(t,e,n)},t.prototype.emit=function(t,e,n,s,r){var i,o,c,u;if(!this.events[t])return!1;c=Array.prototype.slice.call(arguments,1),u=c.length,o=this.events[t];for(var a=0,l=o.length;l>a;a++)switch(i=o[a],i._E_once&&this.off(t,i),u){case 0:i.call(i._E_ctx);break;case 1:i.call(i._E_ctx,e);break;case 2:i.call(i._E_ctx,e,n);break;case 3:i.call(i._E_ctx,e,n,s);break;case 4:i.call(i._E_ctx,e,n,s,r);break;default:i.apply(i._E_ctx,c)}return!0},t.prototype.off=function(t,e){if(!this.events[t])return this;for(var n=0,s=this.events[t].length;s>n;n++)this.events[t][n]===e&&(this.events[t][n]=null,delete this.events[t][n]);return this.events[t]=this.events[t].filter(function(t){return"undefined"!=typeof t}),this},t.prototype.listeners=function(t){var e,n;if(t)return this.events[t]||[];e=this.events,n=[];for(var s in e)n=n.concat(e[s].valueOf());return n},"undefined"!=typeof module&&module.exports?module.exports=t:window.Evemit=t}();
 
-var engine = new Evemit;
+function htmlToAry(html){
+    var string = html.clone().html();
+    var elements = $(string).map(function() {
+        return $('<div>').append(this).html();  // Basically `.outerHTML()`
+    });
+    return elements
+}
+
+function uniq(arr) {
+    var i,
+        len=arr.length,
+        out=[],
+        obj={};
+
+    for (i=0;i<len;i++) {
+        obj[arr[i]]=0;
+    }
+    for (i in obj) {
+        out.push(i);
+    }
+    return out;
+}
+
+var engine  = new Evemit;
+
 
 Engine      = {};
 Engine.E    = {};
@@ -20,12 +44,16 @@ Engine.authenticate = function(user) {
             engine.emit('error', data.responseJSON.message)
         },
         complete: function(data) {
-            engine.emit('success', data.responseJSON.message);
-            localStorage.setItem('token',       data.responseJSON.data.token);
-            localStorage.setItem('tokenExpiry', data.responseJSON.data.tokenExpiry);
-            localStorage.setItem('username',    data.responseJSON.data.username);
-            localStorage.setItem('uid',         data.responseJSON.data.uid);
-            engine.emit('authenticationComplete', data.responseJSON.message)
+            if ( data.responseJSON.success ) {
+                localStorage.setItem('token',       data.responseJSON.data.token);
+                localStorage.setItem('tokenExpiry', data.responseJSON.data.tokenExpiry);
+                localStorage.setItem('username',    data.responseJSON.data.username);
+                localStorage.setItem('uid',         data.responseJSON.data.uid);
+                engine.emit('authenticationComplete', data.responseJSON.message);
+                engine.emit('success', data.responseJSON.message);
+            } else {
+                engine.emit('error', data.responseJSON.message);
+            }
         }
     });
 };
@@ -67,7 +95,8 @@ Engine.get = function (url, model, cb) {
 Engine.fill = function(url, model, id) {
     console.log( 'engine fill' );
     Engine.get(url, model, function( data ){
-        Engine.add(id, data)
+        Engine.add(id, data);
+        engine.emit('load', id)
     })
 };
 
@@ -145,30 +174,6 @@ Engine.params = function(parent) {
     return arr[arr.indexOf(parent) + 1]
 };
 
-function htmlToAry(html){
-    var string = html.clone().html();
-    var elements = $(string).map(function() {
-        return $('<div>').append(this).html();  // Basically `.outerHTML()`
-    });
-    return elements
-}
-
-function uniq(arr) {
-    var i,
-        len=arr.length,
-        out=[],
-        obj={};
-
-    for (i=0;i<len;i++) {
-        obj[arr[i]]=0;
-    }
-    for (i in obj) {
-        out.push(i);
-    }
-    return out;
-}
-
-
 Engine.buildLoop = function(id, data) {
     console.log('building loop');
     var template;
@@ -188,7 +193,7 @@ Engine.buildLoop = function(id, data) {
     }
     var $template = $('<item />',{html:template});
     data.forEach(function(collectionItem){
-        if ( Engine.HTML[id]['els'][ collectionItem['_id'] ] === true && ary.length > 1 ) {
+        if ( Engine.HTML[id]['els'][ collectionItem['_id'] ] === true ) {
         } else {
             var clone = $template.clone();
             $('*[item]', clone).each(function(){
@@ -248,7 +253,7 @@ Engine.draw = function(model) {
         scope = ''
     }
     console.log('draw', 'div[if]' + scope);
-    $('div[if]' + scope).each(function(){
+    $('*[if]' + scope).each(function(){
         console.log('redrawing if');
         Engine.if( $(this) )
     });
@@ -278,6 +283,15 @@ Engine.sendLocation = function(){
     });
 };
 
+Engine.loadList = function(funcs, complete) {
+    var loaded = [];
+    engine.on('load', function(id){
+        loaded.push(id);
+        if (loaded.length === funcs.length) { complete() }
+    });
+    funcs.forEach(function(func){ func() })
+};
+
 
 socket.on('keys', function( key, value ){
     Engine.Keys[key] = value;
@@ -293,9 +307,4 @@ engine.on('data-update', function(data){
     engine.emit(data + '-data-update', 'updated data');
     console.log('redraw due to data update');
     Engine.draw(data)
-});
-
-$(document).ready(function(){
-    Engine.draw();
-    //Engine.sendLocation()
 });

@@ -1,5 +1,5 @@
 function flash(message) {
-    $('#flash').text(message);
+    $('#flashtext').text(message);
     $('#flash').slideDown(function() {
         setTimeout(function() {
             $('#flash').slideUp();
@@ -7,18 +7,13 @@ function flash(message) {
     });
 }
 
-function initialize() {
+function flashMessages() {
     engine.on('error',   function(message)  { flash(message); console.log(message) });
     engine.on('success', function(message)  { flash(message); console.log(message) });
     engine.on('alert',   function(message)  { flash(message); console.log(message) });
     Engine.on('alert',   function(message)  { flash(message); console.log(message) });
     Engine.on('error',   function(message)  { flash(message); console.log(message) });
     Engine.on('success', function(message)  { flash(message); console.log(message) });
-
-    $('#authForm').submit(function (event) {
-        event.preventDefault();
-        Engine.authenticate('#authForm')
-    })
 }
 
 User = {
@@ -49,9 +44,3 @@ function current_user() {
         return false
     }
 }
-
-initialize();
-
-$( document ).ready(function(){
-    initialize();
-});
