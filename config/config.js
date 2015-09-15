@@ -1,5 +1,5 @@
 module.exports = {
-    controllers: ['AuthenticationController', 'UserController', 'HomeController'],
-    models:      ['User'],
+    controllers: ['AuthenticationController', 'UserController', 'HomeController', 'ChatController'],
+    models:      ['User', 'Chat'],
     secret:      'ilovecoolthings'
 };
