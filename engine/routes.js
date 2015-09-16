@@ -1,5 +1,4 @@
-module.exports = function(app, routes){
-    require('../api/policy/policy.js');
+module.exports = function(routes){
     function mapRoutes(routes) {
         routes.forEach(function(route){
             console.log(route.method, route.url || route.resources);
@@ -14,11 +13,11 @@ module.exports = function(app, routes){
                 mapRoutes(resource)
             } else {
                 if (route.protect_with) {
-                    app[ route.method ](route.url, route.protect_with, function(req, res){
+                    App.app[ route.method ](route.url, route.protect_with, function(req, res){
                         route.controller[ route.action ](req, res)
                     })
                 } else {
-                    app[ route.method ](route.url, function(req, res){
+                    App.app[ route.method ](route.url, function(req, res){
                         route.controller[ route.action ](req, res)
                     })
                 }

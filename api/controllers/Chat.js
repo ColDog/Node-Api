@@ -1,8 +1,6 @@
-var Chat;
-
 ChatController = {
     index: function(req, res) {
-        Chat.find({}, function(err, chats){
+        App.Models.Chat.find({}, function(err, chats){
             if (err) {
                 res.json({ success: false, message: 'Failed to load all chats.', data: chats })
             } else {
@@ -14,7 +12,7 @@ ChatController = {
     },
 
     show: function(req, res) {
-        Chat.findOne({ _id: req.params.id }, function(err, chats){
+        App.Models.Chat.findOne({ _id: req.params.id }, function(err, chats){
             if (err) {
                 res.json({ success: false, message: 'Failed to load chat.', data: chats })
             } else {
@@ -24,7 +22,7 @@ ChatController = {
     },
 
     create: function(req, res) {
-        var new_chat = new Chat( req.body );
+        var new_chat = new App.Models.Chat( req.body );
         new_chat.save(function(err) {
             if (err) {
                 res.json({ success: false,  message: 'Chat create failed.', data: err })
@@ -36,7 +34,7 @@ ChatController = {
     },
 
     destroy: function(req, res) {
-        Chat.remove({_id: req.body.id}, function(err){
+        App.Models.Chat.remove({_id: req.body.id}, function(err){
             if (err) {
                 res.json({ success: false, message: 'Chat failed to delete.', data: err });
             } else {

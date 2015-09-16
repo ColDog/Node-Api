@@ -1,13 +1,4 @@
-var mongoose        = require('mongoose');
-var Schema          = mongoose.Schema;
-var bcrypt          = require('bcrypt');
-var key             = require('./../../engine/keys');
-var express         = require('express');
-var app             = express();
-var http            = require('http').Server(app);
-var io              = require('socket.io')(http);
-
-var UserSchema = new Schema({
+var UserSchema = new App.mongoose.Schema({
     name: String,
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -35,5 +26,5 @@ UserSchema.methods.comparePassword = function(candidatePassword, cb) {
     });
 };
 
-var User = mongoose.model('User', UserSchema);
+var User = App.mongoose.model('User', UserSchema);
 module.exports = User;

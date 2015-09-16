@@ -1,9 +1,4 @@
-var mongoose        = require('mongoose');
-var Schema          = mongoose.Schema;
-var key             = require('./../../engine/keys');
-var User = require( '../../engine/require' ).model('User');
-
-var ChatSchema = new Schema({
+var ChatSchema = new App.mongoose.Schema({
     name:       { type: String, required: true },
     description: String,
     messages: [{author: String, message: String}],
@@ -18,5 +13,5 @@ ChatSchema.methods.user = function(cb) {
     })
 };
 
-var Chat = mongoose.model('Chat', ChatSchema);
+var Chat = App.mongoose.model('Chat', ChatSchema);
 module.exports = Chat;
