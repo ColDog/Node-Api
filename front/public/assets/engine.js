@@ -63,21 +63,20 @@ Engine.get = function (url, model, cb) {
     var json  = JSON.parse(local);
     if ( local && json && json.key ) {
         if (Engine.Keys[model] && Engine.Keys[model] == json.key ) {
-            console.log('Engine.Keys is being used in get');
-            console.log('data from get', json.data );
+            console.log('Engine.Keys is being used in get', url, model);
             cb ( json.data );
             engine.emit('load', url)
         } else {
             console.log('socket post');
             Engine.socketPost('redis', model, function(data){
-                console.log('socket posted, in callback with data:', data);
+                console.log('socket posted, in callback with data:', data, url, model);
                 Engine.Keys[model] = data;
                 if (data == json.key) {
-                    console.log('socket posted now using local storage');
+                    console.log('socket posted now using local storage', url, model);
                     cb ( json.data );
                     engine.emit('load', url )
                 } else {
-                    console.log('late get');
+                    console.log('late get', url, model);
                     Engine.simpleGet(url, function(data){
                         localStorage.setItem(url, JSON.stringify(data.responseJSON));
                         cb( data.responseJSON.data );
@@ -91,7 +90,7 @@ Engine.get = function (url, model, cb) {
         Engine.simpleGet(url, function(data){
             localStorage.setItem(url, JSON.stringify(data.responseJSON));
             cb( data.responseJSON.data );
-            engine.emit('load', id)
+            engine.emit('load', url)
         });
     }
 };
@@ -108,7 +107,7 @@ Engine.simpleGet = function (url, cb){
         url: url,
         dataType: 'json',
         method: 'get',
-        headers: { 'x-access-token' : Engine.token },
+        headers: { 'x-access-token' : User.token() },
         error: function(data) {
             engine.emit('error', data.responseJSON.message);
         },
@@ -125,7 +124,7 @@ Engine.post = function (url, data, cb) {
         dataType: 'json',
         method: 'post',
         data: data,
-        headers: { 'x-access-token' : Engine.token },
+        headers: { 'x-access-token' : User.token() },
         error: function(data) {
             engine.emit('error', data.responseJSON.message)
         },
@@ -142,7 +141,7 @@ Engine.put = function (url, data, cb) {
         dataType: 'json',
         method: 'post',
         data: data,
-        headers: { 'x-access-token' : Engine.token },
+        headers: { 'x-access-token' : User.token() },
         error: function(data) {
             engine.emit('error', data.jsonResponse.message)
         },
@@ -154,7 +153,7 @@ Engine.put = function (url, data, cb) {
 };
 
 Engine.emit = function(bind, data) {
-    socket.emit( bind,  {data: data, token: Engine.token} )
+    socket.emit( bind,  {data: data, token: User.token() } )
 };
 
 Engine.socketPost = function(bind, data, cb) {
@@ -173,11 +172,13 @@ Engine.on = function(bind, cb) {
 
 Engine.params = function(parent) {
     var arr = window.location.pathname.split('/');
+    var val;
     if (parent === 'id') {
-        return arr[ arr.length - 1 ]
+        val = arr[ arr.length - 1 ]
     } else {
-        return arr[arr.indexOf(parent) + 1]
+        val = arr[arr.indexOf(parent) + 1]
     }
+    return val.split('_')[0]
 };
 
 Engine.buildLoop = function(id, data) {
@@ -196,24 +197,25 @@ Engine.buildLoop = function(id, data) {
     }
     $(id).html(' ');
     var $template = $('<item />',{html:template});
-    data.forEach(function(collectionItem){
-        if (collectionItem) {
-            if ( Engine.HTML[id]['els'][ collectionItem['_id'] ] === true ) {
-            } else {
-                var clone = $template.clone();
-                $('*[item]', clone).each(function(){
-                    $(this).text( collectionItem[ $(this).attr('item') ] )
-                });
-                $('a', clone).each(function(){
-                    $(this).attr( 'href', function(i,val){
-                        return val + collectionItem[ $(this).attr('item-link') ]
-                    })
-                });
-                Engine.HTML[id]['els'][ collectionItem['_id'] ] = true;
-                ary.push( clone.html() );
+    if (data){
+        data.forEach(function(collectionItem){
+            if (collectionItem) {
+                if ( Engine.HTML[id]['els'][ collectionItem['_id'] ] === true ) {
+                } else {
+                    var clone = $template.clone();
+                    $('*[item]', clone).each(function(){
+                        $(this).text( collectionItem[ $(this).attr('item') ] )
+                    });
+                    $('a', clone).each(function(){
+                        var newval = $(this).attr( 'href') + collectionItem[ $(this).attr('item-link') ];
+                        $(this).attr( 'href', newval.split('_')[0]);
+                    });
+                    Engine.HTML[id]['els'][ collectionItem['_id'] ] = true;
+                    ary.push( clone.html() );
+                }
             }
-        }
-    });
+        });
+    }
     $(id).append( Array.from( ary ).join(' ') )
 };
 
@@ -235,6 +237,12 @@ Engine.add = function(id, data) {
         el.attr( 'href', function(i,val){
             return val + el.attr('item-link')
         })
+    } else if ( el.attr('ev-item-link') ) {
+        el.attr( 'href', function(i,val){
+            return val + eval( el.attr('ev-item-link') )
+        })
+    } else if ( el.is('input') ) {
+        el.attr('value', data );
     }
 };
 
@@ -268,16 +276,30 @@ Engine.draw = function(model) {
     });
 
     $("*[e]" + scope).each(function(){
-        $(this).text( Engine.E[ $(this).attr('e') ] )
+        if ( $(this).is('input') ) {
+            $(this).attr('value', Engine.E[ $(this).attr('e') ] )
+        } else {
+            $(this).text( Engine.E[ $(this).attr('e') ] )
+        }
     });
 
     $("*[ev]" + scope).each(function(){
-        $(this).text( eval( $(this).attr('ev') ) )
+        if ( $(this).is('input') ) {
+            $(this).attr('value', eval( $(this).attr('ev') ) )
+        } else {
+            $(this).text( eval( $(this).attr('ev') ) )
+        }
     });
 
     $("a[item-link]" + scope).each(function(){
         $(this).attr( 'href', function(i,val){
             return val + $(this).attr('item-link')
+        })
+    });
+
+    $("a[ev-item-link]" + scope).each(function(){
+        $(this).attr( 'href', function(i,val){
+            return val + eval( $(this).attr('ev-item-link') )
         })
     });
 };

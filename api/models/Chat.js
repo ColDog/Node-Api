@@ -1,4 +1,4 @@
-var ChatSchema = new App.mongoose.Schema({
+var ChatSchema = new mongoose.Schema({
     name:       { type: String, required: true },
     description: String,
     messages: [{author: String, message: String}],
@@ -13,5 +13,5 @@ ChatSchema.methods.user = function(cb) {
     })
 };
 
-var Chat = App.mongoose.model('Chat', ChatSchema);
+var Chat = mongoose.model('Chat', ChatSchema);
 module.exports = Chat;

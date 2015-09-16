@@ -1,4 +1,4 @@
-var UserSchema = new App.mongoose.Schema({
+var UserSchema = new mongoose.Schema({
     name: String,
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -26,5 +26,5 @@ UserSchema.methods.comparePassword = function(candidatePassword, cb) {
     });
 };
 
-var User = App.mongoose.model('User', UserSchema);
+var User = mongoose.model('User', UserSchema);
 module.exports = User;

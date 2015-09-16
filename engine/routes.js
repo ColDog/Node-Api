@@ -13,11 +13,11 @@ module.exports = function(routes){
                 mapRoutes(resource)
             } else {
                 if (route.protect_with) {
-                    App.app[ route.method ](route.url, route.protect_with, function(req, res){
+                    app[ route.method ](route.url, route.protect_with, function(req, res, next){
                         route.controller[ route.action ](req, res)
                     })
                 } else {
-                    App.app[ route.method ](route.url, function(req, res){
+                    app[ route.method ](route.url, function(req, res){
                         route.controller[ route.action ](req, res)
                     })
                 }

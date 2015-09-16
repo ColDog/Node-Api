@@ -1,10 +1,10 @@
 ChatController = {
     index: function(req, res) {
-        App.Models.Chat.find({}, function(err, chats){
+        Models.Chat.find({}, function(err, chats){
             if (err) {
                 res.json({ success: false, message: 'Failed to load all chats.', data: chats })
             } else {
-                key(Chat, function(key){
+                key(Models.Chat, function(key){
                     res.json({ success: true, message: 'All Chats.', key: key, data: chats })
                 });
             }
@@ -12,7 +12,7 @@ ChatController = {
     },
 
     show: function(req, res) {
-        App.Models.Chat.findOne({ _id: req.params.id }, function(err, chats){
+        Models.Chat.findOne({ _id: req.params.id }, function(err, chats){
             if (err) {
                 res.json({ success: false, message: 'Failed to load chat.', data: chats })
             } else {
@@ -22,19 +22,19 @@ ChatController = {
     },
 
     create: function(req, res) {
-        var new_chat = new App.Models.Chat( req.body );
+        var new_chat = new Models.Chat( req.body );
         new_chat.save(function(err) {
             if (err) {
                 res.json({ success: false,  message: 'Chat create failed.', data: err })
             } else {
                 res.json({ success: true,   message: 'Chat created.', data: new_chat });
-                key(Chat, function(cacheKey){ req.emitter.emit('invalidateCache', 'chat', cacheKey ) })
+                key(Models.Chat, function(cacheKey){ req.emitter.emit('invalidateCache', 'chat', cacheKey ) })
             }
         });
     },
 
     destroy: function(req, res) {
-        App.Models.Chat.remove({_id: req.body.id}, function(err){
+        Models.Chat.remove({_id: req.body.id}, function(err){
             if (err) {
                 res.json({ success: false, message: 'Chat failed to delete.', data: err });
             } else {

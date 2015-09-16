@@ -16,7 +16,7 @@
     <header class="mdl-layout__header">
         <div class="mdl-layout__header-row">
             <!-- Title -->
-            <span class="mdl-layout-title">Title</span>
+            <span class="mdl-layout-title"><a href="/">Yak</a></span>
             <!-- Add spacer, to align navigation to the right -->
             <div class="mdl-layout-spacer"></div>
             <!-- Navigation. We hide it in small screens. -->
@@ -36,7 +36,7 @@
         </div>
     </header>
     <div class="mdl-layout__drawer">
-        <span class="mdl-layout-title">Title</span>
+        <span class="mdl-layout-title"><a href="/">Yakå</a></span>
         <nav class="mdl-navigation" id="sideIf" if="true" condition="current_user()" model="current_user">
             <true>
                 <a class="mdl-navigation__link" href="/profiles/" model="current_user" ev-item-link="User.uid()" ev="User.username"></a>
@@ -71,18 +71,13 @@
                 <span id="flashtext"></span>
             </div>
 
-            <div class="mdl-grid" loop="true" model="chat" id="chats">
+            <div class="mdl-grid">
                 <div class="mdl-cell mdl-cell--4-col">
-                    <div class="content mdl-card mdl-shadow--4dp" style="background-color: #eee; margin: 20px;">
-                        <div class="mdl-card__title mdl-card--expand">
-                        </div>
-                        <div class="mdl-card__actions mdl-card--border">
-                            <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="" item-link="_id">
-                                <span item="name"></span>
-                            </a>
-                            <div class="mdl-layout-spacer"></div>
-                        </div>
-                    </div>
+                    <h1 e="name"></h1>
+                    <h5>Username: <span e="username"></span></h5>
+                </div>
+                <div class="mdl-cell mdl-cell--8-col">
+
                 </div>
             </div>
 
@@ -121,12 +116,6 @@
             });
             return false
         });
-        engine.on('user-cache-invalidated', function(){
-            Engine.fill('/users', 'user', '#users');
-        });
-        engine.on('chat-cache-invalidated', function(){
-            Engine.fill('/chats', 'chat', '#chats');
-        });
         engine.on('authenticationComplete', function(data){
             console.log( 'authenticationComplete', data );
             engine.emit('data-update', 'current_user')
@@ -136,9 +125,15 @@
     engine.on('data-update', function(){ initialize() });
 
     $( document).ready(function(){
-        initialize()
+        initialize();
+        Engine.draw();
         var preLoad = [
-            function(){ Engine.fill('/chats', 'chat', '#chats') }
+            function(){
+                Engine.get('/users/' + Engine.params('profiles'), 'user', function( data ){
+                    Engine.E.username = data.username
+                    Engine.E.name     = data.name
+                })
+            }
         ];
         Engine.loadList( preLoad, function(){
             Engine.draw();

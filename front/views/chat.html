@@ -16,13 +16,13 @@
     <header class="mdl-layout__header">
         <div class="mdl-layout__header-row">
             <!-- Title -->
-            <span class="mdl-layout-title">Title</span>
+            <span class="mdl-layout-title"><a href="/">Yak:</a> <span e="name"></span></span>
             <!-- Add spacer, to align navigation to the right -->
             <div class="mdl-layout-spacer"></div>
             <!-- Navigation. We hide it in small screens. -->
             <nav class="mdl-navigation mdl-layout--large-screen-only" id="topIf" if="true" condition="current_user()" model="current_user">
                 <true>
-                    <a class="mdl-navigation__link" href="" model="current_user" ev="User.username"></a>
+                    <a class="mdl-navigation__link" href="/profiles/" model="current_user" ev-item-link="User.uid()" ev="User.username"></a>
                     <a class="mdl-navigation__link" href="" onclick="User.logout();engine.emit('data-update', 'current_user')">Logout</a>
                 </true>
                 <false>
@@ -36,10 +36,10 @@
         </div>
     </header>
     <div class="mdl-layout__drawer">
-        <span class="mdl-layout-title">Title</span>
+        <span class="mdl-layout-title"><a href="/">Yak:</a> <span e="name"></span></span>
         <nav class="mdl-navigation" id="sideIf" if="true" condition="current_user()" model="current_user">
             <true>
-                <a class="mdl-navigation__link" href="" model="current_user" ev="User.username"></a>
+                <a class="mdl-navigation__link" href="/profiles/" model="current_user" ev-item-link="User.uid()" ev="User.username"></a>
                 <a class="mdl-navigation__link" href=":javascript;" onclick="User.logout();engine.emit('data-update', 'current_user')">Logout</a>
                 <div style="padding: 20px;">
                     <h4>New Chat Room</h4>
@@ -64,26 +64,30 @@
             <div id="flash" style="background-color: #eee; display: none; padding: 1em;">
                 <span id="flashtext"></span>
             </div>
+            <div style="height: 63vh; overflow: scroll;">
 
-            <div class="mdl-grid">
-                <div class="mdl-cell mdl-cell--4-col">
-                    <h1 e="name"></h1>
-                    <p e="description"></p>
-                    <table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp" loop="true" id="messages" model="messages">
-                        <tr><td class="mdl-data-table__cell--non-numeric" item="author"></td><td class="mdl-data-table__cell--non-numeric" item="message"></td></tr>
-                    </table>
-                    <form id="messageForm" action="#" method="post">
-                        <input id="author" type="text"     placeholder="username" name="username" class="mdl-textfield__input">
-                        <textarea id="message" placeholder="message"  name="message" class="mdl-textfield__input"></textarea>
-                        <input type="submit"   value="Send">
-                    </form>
-
-                </div>
-                <div class="mdl-cell mdl-cell--8-col">
-
-                </div>
             </div>
         </div>
+        <div style="height: 20vh; overflow: scroll; border: thin solid; border-color: #eee;">
+            <table style="width: 100% !important;" class="mdl-data-table mdl-js-data-table" loop="true" id="messages" model="messages">
+                <tr><td  class="mdl-data-table__cell--non-numeric" item="author"></td><td class="mdl-data-table__cell--non-numeric" item="message"></td></tr>
+            </table>
+        </div>
+        <form id="messageForm" action="#" method="post">
+            <div class="mdl-grid" style="background-color: #eee; padding: 0;">
+                <div class="mdl-cell mdl-cell--3-col">
+                    <input id="author" type="text" placeholder="username" name="username" class="mdl-textfield__input" ev="User.username">
+                </div>
+                <div class="mdl-cell mdl-cell--8-col">
+                    <textarea id="message" placeholder="message"  name="message" class="mdl-textfield__input" rows="1"></textarea>
+                </div>
+                <div class="mdl-cell mdl-cell--1-col">
+                    <button class="mdl-button mdl-js-button mdl-button--icon">
+                        <i class="material-icons">mood</i>
+                    </button>
+                </div>
+            </div>
+        </form>
     </main>
 </div>
 
@@ -105,7 +109,16 @@
             e.preventDefault();
             Engine.post($(this).attr('action'), $(this).serialize(), function(res){
                 console.log( 'form is submitted' );
-                window.location.replace( '/chats/' + res.data._id )
+                window.location.replace( '/' + res.data._id )
+            });
+            return false
+        });
+
+        $('#newUser').submit(function(e){
+            e.preventDefault();
+            Engine.post($(this).attr('action'), $(this).serialize(), function(res){
+                console.log( 'form is submitted' );
+                window.location.replace( '/profile/' + res.data._id )
             });
             return false
         });

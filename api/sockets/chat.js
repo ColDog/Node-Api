@@ -5,8 +5,8 @@ module.exports = function(socket)  {
     });
     socket.on('message', function(msg){
         console.log( 'got your message', msg );
-        App.io.to( msg.data.room ).emit( 'new-message', msg.data.message );
-        App.Models.Chat.findOne({_id: msg.data.room }, function (err, doc){
+        io.to( msg.data.room ).emit( 'new-message', msg.data.message );
+        Models.Chat.findOne({_id: msg.data.room }, function (err, doc){
             console.log('update doc, ', err, doc);
             doc.messages.push(msg.data.message);
             doc.save();

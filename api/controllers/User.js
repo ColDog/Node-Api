@@ -4,9 +4,19 @@ UserController = {
             if (err) {
                 res.json({ success: false, message: 'Failed to load all users.', data: err })
             } else {
-                App.key(User, function(key){
+                key(User, function(key){
                     res.json({ success: true, message: 'All Users.', key: key, data: users })
                 });
+            }
+        })
+    },
+
+    show: function(req, res) {
+        Models.User.findOne({ _id: req.params.id }, function(err, user){
+            if (err) {
+                res.json({ success: false, message: 'Failed to load user.', data: user })
+            } else {
+                res.json({ success: true, message: 'Loaded user.', key: user.updated_at, data: user })
             }
         })
     },
@@ -18,7 +28,7 @@ UserController = {
                 res.json({ success: false,  message: 'User create failed.', data: err })
             } else {
                 res.json({ success: true,   message: 'User created.', data: new_user });
-                App.key(App.Models.User, function(cacheKey){ req.emitter.emit('invalidateCache', 'user', cacheKey ) })
+                key(App.Models.User, function(cacheKey){ req.emitter.emit('invalidateCache', 'user', cacheKey ) })
             }
         });
     },
