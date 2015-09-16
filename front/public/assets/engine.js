@@ -65,7 +65,8 @@ Engine.get = function (url, model, cb) {
         if (Engine.Keys[model] && Engine.Keys[model] == json.key ) {
             console.log('Engine.Keys is being used in get');
             console.log('data from get', json.data );
-            cb ( json.data )
+            cb ( json.data );
+            engine.emit('load', url)
         } else {
             console.log('socket post');
             Engine.socketPost('redis', model, function(data){
@@ -73,12 +74,14 @@ Engine.get = function (url, model, cb) {
                 Engine.Keys[model] = data;
                 if (data == json.key) {
                     console.log('socket posted now using local storage');
-                    cb ( json.data )
+                    cb ( json.data );
+                    engine.emit('load', url )
                 } else {
                     console.log('late get');
                     Engine.simpleGet(url, function(data){
                         localStorage.setItem(url, JSON.stringify(data.responseJSON));
-                        cb( data.responseJSON.data )
+                        cb( data.responseJSON.data );
+                        engine.emit('load', url)
                     });
                 }
             })
@@ -87,7 +90,8 @@ Engine.get = function (url, model, cb) {
         console.log('immediate get');
         Engine.simpleGet(url, function(data){
             localStorage.setItem(url, JSON.stringify(data.responseJSON));
-            cb( data.responseJSON.data )
+            cb( data.responseJSON.data );
+            engine.emit('load', id)
         });
     }
 };
@@ -96,7 +100,6 @@ Engine.fill = function(url, model, id) {
     console.log( 'engine fill' );
     Engine.get(url, model, function( data ){
         Engine.add(id, data);
-        engine.emit('load', id)
     })
 };
 
@@ -124,11 +127,11 @@ Engine.post = function (url, data, cb) {
         data: data,
         headers: { 'x-access-token' : Engine.token },
         error: function(data) {
-            engine.emit('error', data.jsonResponse.message)
+            engine.emit('error', data.responseJSON.message)
         },
         complete: function(data) {
-            engine.emit('success', data.jsonResponse.message);
-            cb( data )
+            engine.emit('success', data.responseJSON.message);
+            cb( data.responseJSON )
         }
     })
 };
@@ -156,7 +159,6 @@ Engine.emit = function(bind, data) {
 
 Engine.socketPost = function(bind, data, cb) {
     socket.emit(bind, data );
-    console.log( 'socket post called' );
     socket.once(bind + 'Result', function( msg ){
         console.log( 'socket post callback', msg );
         cb( msg )
@@ -171,40 +173,47 @@ Engine.on = function(bind, cb) {
 
 Engine.params = function(parent) {
     var arr = window.location.pathname.split('/');
-    return arr[arr.indexOf(parent) + 1]
+    if (parent === 'id') {
+        return arr[ arr.length - 1 ]
+    } else {
+        return arr[arr.indexOf(parent) + 1]
+    }
 };
 
 Engine.buildLoop = function(id, data) {
-    console.log('building loop');
     var template;
     var els;
     var ary;
     if (Engine.HTML[id]) {
         template                    = Engine.HTML[id]['template'];
         ary                         = htmlToAry( $(id) );
-        $(id).html(' ')
     } else {
         template                    = $(id).html();
         ary                         = [];
         Engine.HTML[id]             = {};
         Engine.HTML[id]['els']      = {};
         Engine.HTML[id]['template'] = template;
-        $(id).html(' ')
     }
+    $(id).html(' ');
     var $template = $('<item />',{html:template});
     data.forEach(function(collectionItem){
-        if ( Engine.HTML[id]['els'][ collectionItem['_id'] ] === true ) {
-        } else {
-            var clone = $template.clone();
-            $('*[item]', clone).each(function(){
-                $(this).text( collectionItem[ $(this).attr('item') ] )
-            });
-            Engine.HTML[id]['els'][ collectionItem['_id'] ] = true;
-            ary.push( clone.html() );
-            console.log('adding to array', clone.html());
+        if (collectionItem) {
+            if ( Engine.HTML[id]['els'][ collectionItem['_id'] ] === true ) {
+            } else {
+                var clone = $template.clone();
+                $('*[item]', clone).each(function(){
+                    $(this).text( collectionItem[ $(this).attr('item') ] )
+                });
+                $('a', clone).each(function(){
+                    $(this).attr( 'href', function(i,val){
+                        return val + collectionItem[ $(this).attr('item-link') ]
+                    })
+                });
+                Engine.HTML[id]['els'][ collectionItem['_id'] ] = true;
+                ary.push( clone.html() );
+            }
         }
     });
-    console.log('loop ary', ary);
     $(id).append( Array.from( ary ).join(' ') )
 };
 
@@ -222,6 +231,10 @@ Engine.add = function(id, data) {
         el.text( eval( el.attr('ev') ) )
     } else if ( el.attr('if') ) {
         Engine.if( el )
+    } else if ( el.attr('item-link') ) {
+        el.attr( 'href', function(i,val){
+            return val + el.attr('item-link')
+        })
     }
 };
 
@@ -236,10 +249,8 @@ Engine.if = function(el) {
     }
 
     if ( eval( el.attr( 'condition' ) ) ) {
-        console.log( 'if id:', id, 'true', Engine.HTML[id]['true'] );
         el.html( Engine.HTML[id]['true'] )
     } else {
-        console.log( 'if id:', id, 'false', Engine.HTML[id]['false'] );
         el.html( Engine.HTML[id]['false'] )
     }
 };
@@ -252,9 +263,7 @@ Engine.draw = function(model) {
     else {
         scope = ''
     }
-    console.log('draw', 'div[if]' + scope);
     $('*[if]' + scope).each(function(){
-        console.log('redrawing if');
         Engine.if( $(this) )
     });
 
@@ -264,6 +273,12 @@ Engine.draw = function(model) {
 
     $("*[ev]" + scope).each(function(){
         $(this).text( eval( $(this).attr('ev') ) )
+    });
+
+    $("a[item-link]" + scope).each(function(){
+        $(this).attr( 'href', function(i,val){
+            return val + $(this).attr('item-link')
+        })
     });
 };
 

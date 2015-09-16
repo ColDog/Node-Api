@@ -1,5 +1,4 @@
-var Chat = require( '../../engine/require' ).model('Chat');
-var key  = require( '../../engine/keys');
+var Chat;
 
 ChatController = {
     index: function(req, res) {
@@ -10,6 +9,16 @@ ChatController = {
                 key(Chat, function(key){
                     res.json({ success: true, message: 'All Chats.', key: key, data: chats })
                 });
+            }
+        })
+    },
+
+    show: function(req, res) {
+        Chat.findOne({ _id: req.params.id }, function(err, chats){
+            if (err) {
+                res.json({ success: false, message: 'Failed to load chat.', data: chats })
+            } else {
+                res.json({ success: true, message: 'Loaded chat.', key: chats.messages[ chats.length - 1 ], data: chats })
             }
         })
     },

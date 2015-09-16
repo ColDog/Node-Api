@@ -1,4 +1,6 @@
-module.exports = function(app, io, redis){
+var chat = require('../api/sockets/chat');
+
+module.exports = function(app, io, redis, emitter){
     io.on('connection', function(socket){
         console.log('socket connected');
 
@@ -12,5 +14,8 @@ module.exports = function(app, io, redis){
                 socket.emit('redisResult', reply)
             });
         });
+
+        chat(app, io, redis, socket, emitter)
+
     });
 };

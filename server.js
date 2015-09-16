@@ -16,6 +16,8 @@ var redis           = require('redis').createClient(process.env.REDIS_URL ? proc
 app.set( 'port', (process.env.PORT || 3000) );
 app.set( 'secret', config.secret );
 
+
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(morgan('dev'));
@@ -33,7 +35,7 @@ requireHelper.models( config.models );
 requireHelper.controllers( config.controllers );
 routesHelper( app, require( './api/application' ) );
 
-require('./engine/socket')( app, io, redis );
+require('./engine/socket')( app, io, redis, emitter );
 
 emitter.on('invalidateCache', function(key, value){
     console.log('invalidateCache', key, value);

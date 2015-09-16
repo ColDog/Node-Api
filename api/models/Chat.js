@@ -4,9 +4,9 @@ var key             = require('./../../engine/keys');
 var User = require( '../../engine/require' ).model('User');
 
 var ChatSchema = new Schema({
-    name:       String,
-    session:    String,
-    user_id:    String,
+    name:       { type: String, required: true },
+    description: String,
+    messages: [{author: String, message: String}],
     created_at: Date,
     updated_at: Date
 });
