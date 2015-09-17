@@ -64,8 +64,11 @@
             <div id="flash" style="background-color: #eee; display: none; padding: 1em;">
                 <span id="flashtext"></span>
             </div>
+            <button onclick="WebRTC.publish()">Publish</button>
+            <button onclick="WebRTC.listen()">Listen</button>
             <div style="height: 63vh; overflow: scroll;">
 
+                <div class="mdl-grid" id="videochat"></div>
             </div>
         </div>
         <div style="height: 20vh; overflow: scroll; border: thin solid; border-color: #eee;">
@@ -95,6 +98,7 @@
 <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
 <script src="/assets/engine.js"></script>
 <script src="/assets/main.js"></script>
+<script src="/assets/webrtc.js"></script>
 <!--<script src="/assets/index.js"></script>-->
 <script>
     function initialize() {
@@ -151,7 +155,7 @@
             Engine.draw();
             initialize()
         });
-        Engine.emit( 'join', Engine.params('id') )
+        socket.emit( 'join', { room: Engine.params('id') } )
     })
 
 

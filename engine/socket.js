@@ -1,4 +1,4 @@
-module.exports = function(){
+module.exports = function(io){
     io.on('connection', function(socket){
         console.log('socket connected')
 
@@ -13,7 +13,7 @@ module.exports = function(){
             });
         });
 
-        Sockets.Chat(socket)
+        Sockets.Chat(socket, io)
 
     });
 };

@@ -60,7 +60,7 @@ emitter.on('invalidateCache', function(key, value){
 });
 
 drawRoutes(routes);
-buildSockets();
+buildSockets(io);
 
 
 appHttp.listen(app.get('port'), function(){
