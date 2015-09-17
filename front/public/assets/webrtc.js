@@ -4,130 +4,141 @@ window.RTCSessionDescription = window.RTCSessionDescription || window.mozRTCSess
 window.URL = window.URL || window.mozURL || window.webkitURL;
 window.navigator.getUserMedia = window.navigator.getUserMedia || window.navigator.webkitGetUserMedia || window.navigator.mozGetUserMedia;
 
-/**
- * Initialization
- */
-WebRTC         = {}
-WebRTC.streams = []
-WebRTC.config  = {'iceServers': [{'url': 'stun:stun.services.mozilla.com'}, {'url': 'stun:stun.l.google.com:19302'}]}
-WebRTC.pc      = new RTCPeerConnection(WebRTC.config)
-WebRTC.events  = new Evemit
+/************ Initialization ************/
+WebRTC              = {}
+WebRTC.userStream   = null
+WebRTC.userId       = null
+WebRTC.config       = {'iceServers': [{'url': 'stun:stun.services.mozilla.com'}, {'url': 'stun:stun.l.google.com:19302'}]}
+WebRTC.events       = new Evemit
+WebRTC.users        = []
+peerC               = {}
 
-/**
- * Peer connection callbacks
+WebRTC.events.on('ready', function(){
+    WebRTC.sendOffers()
+})
+
+/************ Peer Connection ************
+ This method is designed to be called to connect with an ID for a peer connection. When a user first
+ Joins a room, they walk through and send offers to all members. Then establishing peer connections
+ with each, represented by an ID assigned by socket.io. It is always the responsibility of the joining
+ user to send offers to those already in the room.
  */
-WebRTC.pc.onaddstream = function(obj) {
-    WebRTC.add(obj.stream)
-}
-WebRTC.pc.onicecandidate = function (e) {
-    if (!e.candidate) return
-    WebRTC.send("icecandidate", e.candidate)
-};
-WebRTC.pc.oniceconnectionstatechange = function() {
-    if(WebRTC.pc.iceConnectionState == 'disconnected') {
-        WebRTC.removeInactive()
+WebRTC.getPc = function(id) {
+    if (peerC[id]) {
+        return peerC[id]
+    } else {
+        var pc = new RTCPeerConnection(WebRTC.config)
+        peerC[id] = pc
+
+        pc.addStream(WebRTC.userStream)
+
+        pc.onaddstream = function(obj) {
+            console.log('add stream', id)
+            WebRTC.add(obj.stream, id)
+        }
+        pc.onicecandidate = function (e) {
+            console.log('ice candidates', id)
+            WebRTC.send("icecandidate", e.candidate, id)
+        }
+        return pc
     }
 }
-WebRTC.events.on('joinRoom', function(){ WebRTC.offer() })
 
-/**
- * Socket Methods
- */
-socket.on('offer',          function(offer)     { WebRTC.answer(offer) })
-socket.on('answer',         function(offer)     { WebRTC.accept(offer) })
+/************ Sockets ************
+ The sockets relay the key application information from the server:
+ - When an offer comes in, an answer is sent out
+ - When an answer comes in, it is accepted
+ - When an `icecandidate` comes in, it is added
+ - When a new user joins, nothing happens, but an alert is relayed
+ - When a user first joins the room, they connect to all the users in the current room, sending out offers
+*/
+socket.on('offer',          function(msg)       { WebRTC.answer(msg.by, msg.offer) })
+socket.on('answer',         function(msg)       { WebRTC.accept(msg.by, msg.offer) })
 socket.on('icecandidate',   function(candidate) { WebRTC.pc.addIceCandidate(new RTCIceCandidate(candidate)) })
-socket.on('new-user',       function(id)        { WebRTC.Users.push( id ) })
+socket.on('new-user',       function()          { engine.emit('success', 'new user connected') })
+socket.on('joined-room',    function(msg)       { WebRTC.userId = msg.userId ; WebRTC.users = msg.members })
 
-/**
- * HTML Methods
- */
-WebRTC.add              = function(stream) {
-    console.log('add remote')
-    WebRTC.streams.push(stream)
-    var div   = document.createElement('div')
-    var video = document.createElement('video')
-    div.className = 'mdl-card mdl-shadow--4dp'
-    video.src = URL.createObjectURL(stream);
-    WebRTC.pc.addStream(stream);
-    video.play()
-    video.setAttribute('width', '100%')
-    video.setAttribute('height', '100%')
-    div.setAttribute( 'id', stream.id )
-    div.style.padding = 0
-    div.appendChild( video )
-    document.getElementById('videochat').appendChild( div )
-}
-WebRTC.removeInactive   = function() {
-    WebRTC.streams.forEach(function(stream){
-        if ( stream.ended ) {
-            document.getElementById('videochat').removeChild( document.getElementById( stream.id ) )
-            WebRTC.streams.splice( WebRTC.streams.indexOf( stream ), 1 )
+
+/************ Get initialization information ************/
+WebRTC.sendOffers = function() {
+    console.log(WebRTC.unconn)
+    WebRTC.unconn.forEach(function(id){
+        if (id === WebRTC.userId) {
+            removeAry(WebRTC.unconn, id)
+        } else {
+            removeAry(WebRTC.unconn, id)
+            WebRTC.offer(id)
         }
     })
-}
-
-/**
- * Utility Methods
- */
-WebRTC.error  = function(err) {
-    console.warn( err )
-}
-
-WebRTC.send   = function(name, offer) {
-    socket.emit( name, { offer: offer, room: Engine.params('id') } )
-}
-
-/**
- * MAIN WebRTC Methods
- * Main methods that run the WebRTC functions
- * #offer is responsible for calling the initial offer to the server
- * #answer is what will answer this offer
- * #accept is what will answer the answer of the initial call
- * #media sets up the users video chat
- */
-WebRTC.offer  = function()       {
-    WebRTC.pc.createOffer(function(offer) {
-        WebRTC.pc.setLocalDescription(new RTCSessionDescription(offer), function() {
-            WebRTC.send('offer', offer)
-        }, WebRTC.error);
-    }, WebRTC.error);
-}
-
-WebRTC.answer = function(offer)  {
-    WebRTC.pc.setRemoteDescription(new RTCSessionDescription(offer), function() {
-        WebRTC.pc.createAnswer(function(answer) {
-            WebRTC.pc.setLocalDescription(new RTCSessionDescription(answer), function() {
-                WebRTC.send('answer', answer)
-            }, WebRTC.error);
-        }, WebRTC.error);
-    }, WebRTC.error);
-}
-
-WebRTC.accept = function(answer) {
-    WebRTC.pc.setRemoteDescription(
-        new RTCSessionDescription(answer),
-        function() {  },
-        WebRTC.error
-    )
-}
-
-WebRTC.listen  = function() {
-    navigator.getUserMedia({video: true, audio: true},
-        function(stream) {
-            WebRTC.pc.addStream(stream)
-            WebRTC.events.emit('joinRoom')
-        },
-        WebRTC.error
-    );
 }
 
 WebRTC.publish = function() {
     navigator.getUserMedia({video: true, audio: true},
         function(stream) {
+            WebRTC.userStream = stream
             WebRTC.add(stream)
-            WebRTC.events.emit('joinRoom')
+            WebRTC.events.emit('ready')
         },
         WebRTC.error
     );
+}
+
+/************ Main Offer and Answer Methods ************/
+WebRTC.offer  = function(id) {
+    console.log('offer', id)
+    var pc = WebRTC.getPc(id)
+    pc.createOffer(function(offer) {
+        pc.setLocalDescription(new RTCSessionDescription(offer), function() {
+            WebRTC.send('offer', offer, id)
+        }, WebRTC.error);
+    }, WebRTC.error);
+}
+
+WebRTC.answer = function(id, offer) {
+    console.log('answer', id)
+    var pc = WebRTC.getPc(id)
+    pc.setRemoteDescription(new RTCSessionDescription(offer), function() {
+        pc.createAnswer(function(answer) {
+            pc.setLocalDescription(new RTCSessionDescription(answer), function() {
+                WebRTC.send('answer', answer, id)
+            }, WebRTC.error);
+        }, WebRTC.error);
+    }, WebRTC.error);
+}
+
+WebRTC.accept = function(id, answer) {
+    console.log('accept', id)
+    var pc = WebRTC.getPc(id)
+    pc.setRemoteDescription(
+        new RTCSessionDescription(answer),
+        function() { console.log('accept successful') },
+        WebRTC.error
+    )
+}
+
+/************ HTML and Utility Methods ************/
+WebRTC.add    = function(stream, id) {
+    console.log('add remote')
+    var div   = document.createElement('div')
+    var video = document.createElement('video')
+    div.className = 'mdl-card mdl-shadow--4dp'
+    video.src = URL.createObjectURL(stream);
+    video.play()
+    video.setAttribute('width', '100%')
+    video.setAttribute('height', '100%')
+    video.setAttribute('controls', '')
+    div.setAttribute( 'id', id )
+    div.style.padding = 0
+    div.appendChild( video )
+    document.getElementById('videochat').appendChild( div )
+}
+WebRTC.remove = function(id) {
+    document.getElementById('videochat').removeChild( document.getElementById( id ) )
+}
+WebRTC.error  = function(err) {
+    console.warn( err )
+}
+WebRTC.send   = function(name, offer, to) {
+    socket.emit( name, { offer: offer, room: Engine.params('id'), by: WebRTC.userId, to: to } )
 }
 

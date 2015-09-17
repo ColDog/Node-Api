@@ -1,24 +1,23 @@
+var chatMembers = []
+
 module.exports = function(socket, io)  {
     socket.on('join', function(msg){
-        console.log( 'join', msg )
         socket.join( msg.room )
         socket.broadcast.to( msg.room ).emit( 'new-user', socket.id )
-        socket.emit('joined-room', socket.id )
+        chatMembers.push( socket.id )
+        socket.emit('joined-room', { userId: socket.id, members: chatMembers  } )
     });
 
     socket.on('offer',  function(msg){
-        console.log( 'offer', msg )
-        socket.broadcast.to( msg.room ).emit( 'offer', msg.offer )
+        io.to( msg.to ).emit( 'offer', { offer: msg.offer, by: msg.by } )
     });
 
     socket.on('answer', function(msg){
-        console.log( 'answer', msg )
-        socket.broadcast.to( msg.room ).emit( 'answer', msg.offer )
+        io.to( msg.to ).emit( 'answer', { offer: msg.offer, by: msg.by }  )
     });
 
     socket.on('icecandidate', function(msg){
-        console.log( 'icecandidate', msg )
-        socket.broadcast.to( msg.room ).emit( 'icecandidate', msg.offer )
+        io.to( msg.to ).emit( 'icecandidate', { offer: msg.offer, by: msg.by }  )
     });
 
     socket.on('message', function(msg){
@@ -36,5 +35,6 @@ module.exports = function(socket, io)  {
         socket.rooms.forEach(function(room){
             socket.broadcast.to( room ).emit( 'user-disconnect', socket.id )
         })
+        if (chatMembers.indexOf(socket.id) > -1) chatMembers.splice( chatMembers.indexOf(socket.id), 1 )
     })
 };
